@@ -1,0 +1,60 @@
+version: "3.8"
+
+# All services share the same bridge network so they can reach each other
+# by service name (proxy, destination_server, destination_server_2).
+
+services:
+
+  proxy:
+    build: .
+    command: python proxy.py
+    ports:
+      - "9000:9000"
+    environment:
+      PROXY_PORT: "9000"
+    networks:
+      - proxy_net
+    restart: unless-stopped
+
+  destination_server:
+    build: .
+    command: python destination_server.py
+    ports:
+      - "9001:9001"
+    environment:
+      DEST_PORT: "9001"
+    networks:
+      - proxy_net
+    restart: unless-stopped
+
+  destination_server_2:
+    build: .
+    command: python destination_server.py
+    ports:
+      - "9002:9002"
+    environment:
+      DEST_PORT: "9002"
+    networks:
+      - proxy_net
+    restart: unless-stopped
+
+  demo:
+    build: .
+    command: python demo_scenarios.py
+    environment:
+      PROXY_HOST: proxy
+      PROXY_PORT: "9000"
+      DEST_HOST: destination_server
+      DEST_PORT: "9001"
+    depends_on:
+      - proxy
+      - destination_server
+      - destination_server_2
+    networks:
+      - proxy_net
+    # Run once; do not restart
+    restart: "no"
+
+networks:
+  proxy_net:
+    driver: bridge
